@@ -2,6 +2,7 @@
 
 ( devices )
 |00 @System	[ &vector $2 &pad $6 &r $2 &g $2 &b $2 ]
+|10 @Console	[ &vector $2 &read $1 &pad $5 &write $1 &error $1 ]
 |20 @Screen	[ &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
 |80 @Controller [ &vector $2 &button $1 &key $1 ]
 
@@ -55,19 +56,21 @@
 	MARGIN .player1/x STZ2
 	MARGIN .player1/y STZ2
 
-	.player1/char LDZ INC .player1/char STZ
+	#01 .player1/char STZ
+
+
 
 BRK
 
 @on-frame ( -> )
 	.framecount LDZ INC .framecount STZ
 
-	.player1/char LDZ2 .player1/x LDZ2 .player1/y LDZ2 
+	.player1/char LDZ .player1/x LDZ2 .player1/y LDZ2 
 	CLEAR-COLOR ;draw-players JSR2
 
 	;update-players JSR2
 
-	.player1/char LDZ2 .player1/x LDZ2 .player1/y LDZ2
+	.player1/char LDZ .player1/x LDZ2 .player1/y LDZ2
 	PLAYER1-COLOR ;draw-players JSR2
 
 BRK
@@ -89,7 +92,10 @@ BRK
 	,&player-two JMP
 
 	&player-one-a
-		.player1/char LDZ #01 ADD .player1/char STZ
+		( debug )
+		.player1/char DEI .Console/write DEO
+
+		.player1/char LDZ INC .player1/char STZ
 		,&player-two JMP
 	&player-one-up
 		.player1/y LDZ2 PLAYER1-SPEED SUB2 .player1/y STZ2
@@ -116,7 +122,7 @@ RTN
 
 	.framecount LDZ 16MOD #01 MUL TO-SHORT
 	( set sprite address )
-	;char1 ADD2 .Screen/addr DEO2
+	;char4 ADD2 .Screen/addr DEO2
 
 	( get color from return stack and draw )
 	STHr .Screen/sprite
