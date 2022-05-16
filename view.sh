@@ -1,0 +1,1 @@
+hexdump kamura.chr

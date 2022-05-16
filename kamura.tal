@@ -1,0 +1,192 @@
+( myUXN.tal )
+
+( devices )
+|00 @System	[ &vector $2 &pad $6 &r $2 &g $2 &b $2 ]
+|20 @Screen	[ &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
+|80 @Controller [ &vector $2 &button $1 &key $1 ]
+
+( macros )
+%INIT-X { #0008 .Screen/x DEO2 } ( -- )
+%INIT-Y { #0008 .Screen/y DEO2 } ( -- )
+%cADD-X { .Screen/x DEI2 #0008 ADD2 .Screen/x DEO2 } ( -- )
+%cADD-Y { .Screen/y DEI2 #0008 ADD2 .Screen/y DEO2 } ( -- )
+
+%HALF2 { #01 SFT2 } ( shift one bit to the right ) ( short -- short/2 )
+%CLEAR-COLOR { #40 } ( clear 1bpp sprite from fg )
+%color-2 { #81 } ( draw 1bpp sprite with color 2 and transparency )
+
+%MOD  { DUP2 DIV MUL SUB }
+%MOD2 { OVR2 OVR2 DIV2 MUL2 SUB2 }
+%8MOD { #07 AND } ( byte -- byte%8 )
+%16MOD { #10 AND } ( byte -- byte%16 )
+
+%TO-SHORT { #00 SWP } ( byte -- short )
+%RTN { JMP2r }
+
+( constants )
+%PLAYER1-COLOR { #c5 }
+%PLAYER1-SPEED { #0001 }
+
+%MARGIN { #0010 }
+%WALL-MARGIN { #0010 }
+
+
+( zero page )
+|0000
+@framecount $1
+@sprite [ &pos-x $2 &pos-y $2 ]
+@player1 [ &x $2 &y $2 &char $1 ]
+@player2 [ &x $2 &y $2 ]
+
+
+( main program )
+|0100
+@setup ( -> )
+	( set system colors )
+       	#1d49 .System/r DEO2
+ 	#1439 .System/g DEO2
+	#17bc .System/b DEO2
+
+	;on-frame .Screen/vector DEO2
+
+	;draw-background JSR2
+
+	( initialize players )
+	MARGIN .player1/x STZ2
+	MARGIN .player1/y STZ2
+
+	.player1/char LDZ INC .player1/char STZ
+
+BRK
+
+@on-frame ( -> )
+	.framecount LDZ INC .framecount STZ
+
+	.player1/char LDZ2 .player1/x LDZ2 .player1/y LDZ2 
+	CLEAR-COLOR ;draw-players JSR2
+
+	;update-players JSR2
+
+	.player1/char LDZ2 .player1/x LDZ2 .player1/y LDZ2
+	PLAYER1-COLOR ;draw-players JSR2
+
+BRK
+
+@update-players ( -- )
+	&player-one
+		.Controller/button DEI
+		DUP #01 AND
+		,&player-one-a JCN
+		DUP #10 AND
+		,&player-one-up JCN
+		DUP #20 AND
+		,&player-one-down JCN
+		DUP #40 AND
+		,&player-one-left JCN
+		DUP #80 AND
+		,&player-one-right JCN
+		
+	,&player-two JMP
+
+	&player-one-a
+		.player1/char LDZ #01 ADD .player1/char STZ
+		,&player-two JMP
+	&player-one-up
+		.player1/y LDZ2 PLAYER1-SPEED SUB2 .player1/y STZ2
+		,&player-two JMP
+	&player-one-down
+		.player1/y LDZ2 PLAYER1-SPEED ADD2 .player1/y STZ2
+		,&player-two JMP
+	&player-one-left
+		.player1/x LDZ2 PLAYER1-SPEED SUB2 .player1/x STZ2
+		,&player-two JMP
+	&player-one-right
+		.player1/x LDZ2 PLAYER1-SPEED ADD2 .player1/x STZ2
+	&player-two
+		POP
+RTN
+
+@draw-players ( char x^ y^ color -- )
+	( save color ) 
+	STH
+	( set initial y and x )
+	.Screen/y DEO2
+	.Screen/x DEO2
+	.player1/char DEO
+
+	.framecount LDZ 16MOD #01 MUL TO-SHORT
+	( set sprite address )
+	;char1 ADD2 .Screen/addr DEO2
+
+	( get color from return stack and draw )
+	STHr .Screen/sprite
+	( draw )
+	DEO
+RTN
+	
+@draw-background ( -- )
+        ;bg3 .Screen/addr DEO2 ( set tile address )
+
+        ( .Screen/height DEI2 HALF2 #0004 SUB2 .Screen/y DEO2 )
+
+        .Screen/height DEI2 WALL-MARGIN SUB2
+        WALL-MARGIN
+        &loop-y
+                DUP2 .Screen/y DEO2
+                .Screen/width DEI2 #0000
+		&loop-x
+                        DUP2 .Screen/x DEO2
+                        #81 .Screen/sprite DEO
+                        #0008 ADD2
+                        GTH2k
+                        ,&loop-x JCN
+                POP2 POP2
+
+                #0008 ADD2
+                GTH2k
+                ,&loop-y JCN
+        POP2 POP2
+RTN
+
+
+@square ff81 8181 8181 81ff
+@rock 3c4e 9ffd f962 3c00
+@character 3c7e 5a7f 1b3c 5a18
+
+@alpha0 7c44 4444 5444 7c00
+@alpha1	1838 0808 0808 3c00
+
+@tile-background 1122 4488 1122 4488
+@bg1 ffff f7fd affd dfff  0000 0802 5002 2000
+@bg2 ffbb efff fddf f7ff  0044 1000 0220 0800
+@bg3 0000 0000 0000 0000 0400 0020 0400 0040
+
+
+@paddle-sprite
+  &tile0 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile1 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile2 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile3 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile4 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile5 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+
+
+@char1
+  &frame0 0000 667e 5a7e 3c24  0000 667e 7e66 0000
+  &frame1 0000 0066 7e5a 7e24  0000 0066 7e7e 6600
+
+@char2
+  &frame0 0040 3e00 3e1c 1414  0040 3e14 3e00 0000
+  &frame1 0000 403e 003e 1c14  0000 403e 143e 0000
+
+@char3 
+  &frame0 002a 3e2a 1c1c 1c14  002a 3e3e 1c00 0000
+  &frame1 0000 2a3e 2a1c 1c14  0000 2a3e 3e1c 0000
+
+@char4
+  &frame0 0036 083e 1c14 1414  0036 3e3e 0000 0000
+  &frame1 0000 3608 3e1c 1414  0000 3e3e 3e00 0000
+
+@mob1
+  &frame0 007e 7e98 9b27 3d20  007e 1866 2424 3c20
+  &frame1 007e 7e19 dbe6 bc04  007e 1866 2424 3c04

@@ -1,0 +1,1 @@
+../uxnemu kamura.rom
