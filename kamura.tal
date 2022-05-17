@@ -36,8 +36,8 @@
 %PLAYER1-COLOR { #c5 }
 %PLAYER1-SPEED { #0001 }
 
-%MARGIN { #0010 }
-%WALL-MARGIN { #0010 }
+%MARGIN { #0020 }
+%WALL-MARGIN { #0020 }
 
 
 ( zero page )
@@ -68,6 +68,11 @@
 
 	;on-frame .Screen/vector DEO2
 
+	.Screen/width DEI2 #0046 SUB2 #0008 ;text/hpinfo #01 ;draw-str JSR2
+	.Screen/width DEI2 #0046 SUB2 #0016 ;text/mpinfo #02 ;draw-str JSR2
+
+	#04 ;rand/a STA
+
 	;draw-background JSR2
 
 	( initialize players )
@@ -78,6 +83,22 @@
 
 	
 BRK
+
+@draw-str ( x* y* text* color -- )
+
+	#01 .Screen/auto DEO
+	STH
+	SWP2 .Screen/y DEO2
+	SWP2 .Screen/x DEO2
+	&loop
+		LDAk #20 SUB #00 SWP #30 SFT2 ;font ADD2 .Screen/addr DEO2
+		STHkr .Screen/sprite DEO
+		INC2 LDAk ,&loop JCN
+	POP2
+	STHr POP
+	#00 .Screen/auto DEO
+
+JMP2r
 
 @on-console ( -> )
 BRK
@@ -204,7 +225,7 @@ RTN
 	#40 .Screen/sprite DEO
 
 	( update pointer position )
-	.Mouse/x DEI2 .pointer/x STZ2
+	.Mouse/x DEI2 .pointer/x STZ2 
 	.Mouse/y DEI2 .pointer/y STZ2
 
 	( send pointer position to screen )
@@ -215,6 +236,65 @@ RTN
 	( draw sprite with color 2 in foreground )
 	#41 .Screen/sprite DEO
 RTN
+
+
+@rand ( -- number )
+
+	( local vars )
+	#04 JMP
+	&x $1 &y $1 &z $1 &a $1
+	( 8-bit PRNG https://github.com/edrosten/8bit_rng )
+	( t = x ^ (x << 4) )
+	,&x LDR DUP #40 SFT EOR
+	( x = y )
+	,&y LDR ,&x STR
+	( y = z )
+	,&z LDR ,&y STR
+	( z = a )
+	,&a LDR DUP ,&z STR
+	( a = z ^ t ^ (z >> 1) ^ (t << 1) )
+	DUP #10 SFT EOR SWP DUP #01 SFT EOR EOR
+	DUP ,&a STR
+
+JMP2r
+
+
+@text
+	&hpinfo "HP: 00
+	&mpinfo "MP: 00
+
+@font ( atari8.uf1 )
+	0000 0000 0000 0000 6060 6060 6000 6000
+	6666 6600 0000 0000 006c fe6c 6cfe 6c00
+	183e 603c 067c 1800 0066 6c18 3066 4600
+	386c 3870 decc 7600 6060 6000 0000 0000
+	0e1c 1818 181c 0e00 7038 1818 1838 7000
+	0066 3cff 3c66 0000 0018 187e 1818 0000
+	0000 0000 0030 3060 0000 007e 0000 0000
+	0000 0000 0018 1800 0206 0c18 3060 4000
+	&num
+	3c66 6e76 6666 3c00 1838 1818 1818 7e00
+	3c66 060c 1830 7e00 7e0c 180c 0666 3c00
+	0c1c 3c6c 7e0c 0c00 7e60 7c06 0666 3c00
+	3c60 607c 6666 3c00 7e06 0c18 3030 3000
+	3c66 663c 6666 3c00 3c66 663e 060c 3800
+	0060 6000 6060 0000 0030 3000 3030 6000
+	0c18 3060 3018 0c00 0000 7e00 007e 0000
+	6030 180c 1830 6000 3c66 060c 1800 1800
+	3c66 6e6a 6e60 3e00 183c 6666 7e66 6600
+	7c66 667c 6666 7c00 3c66 6060 6066 3c00
+	786c 6666 666c 7800 7e60 607c 6060 7e00
+	7e60 607c 6060 6000 3e60 606e 6666 3e00
+	6666 667e 6666 6600 7830 3030 3030 7800
+	0606 0606 0666 3c00 666c 7870 786c 6600
+	6060 6060 6060 7e00 c6ee fed6 c6c6 c600
+	6676 7e7e 6e66 6600 3c66 6666 6666 3c00
+	7c66 667c 6060 6000 3c66 6666 766c 3600
+	7c66 667c 6c66 6600 3c66 603c 0666 3c00
+	7e18 1818 1818 1800 6666 6666 6666 3e00
+	6666 6666 663c 1800 c6c6 c6d6 feee c600
+	6666 3c18 3c66 6600 6666 663c 1818 1800
+	7e06 0c18 3060 7e00 7860 6060 6060 7800
 
 @square ff81 8181 8181 81ff
 @rock 3c4e 9ffd f962 3c00
@@ -233,7 +313,7 @@ RTN
   &tile0 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile1 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile2 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
-  &tile3 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile3  3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile4 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile5 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
 
