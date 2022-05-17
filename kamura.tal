@@ -1,10 +1,11 @@
-( myUXN.tal )
+( kamura.tal )
 
 ( devices )
-|00 @System	[ &vector $2 &pad $6 &r $2 &g $2 &b $2 ]
+|00 @System		[ &vector $2 &pad $6 &r $2 &g $2 &b $2 ]
 |10 @Console	[ &vector $2 &read $1 &pad $5 &write $1 &error $1 ]
-|20 @Screen	[ &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
+|20 @Screen		[ &vector $2 &width $2 &height $2 &auto $1 &pad $1 &x $2 &y $2 &addr $2 &pixel $1 &sprite $1 ]
 |80 @Controller [ &vector $2 &button $1 &key $1 ]
+|90 @Mouse			[ &vector $2 &x $2 &y $2 &state $1 &pad $3 &scrollx $2 &scrolly $2 ]
 
 ( macros )
 %INIT-X { #0008 .Screen/x DEO2 } ( -- )
@@ -14,10 +15,17 @@
 
 %HALF2 { #01 SFT2 } ( shift one bit to the right ) ( short -- short/2 )
 %CLEAR-COLOR { #40 } ( clear 1bpp sprite from fg )
-%color-2 { #81 } ( draw 1bpp sprite with color 2 and transparency )
+%color-2 { #c5 } ( draw 1bpp sprite with color 2 and transparency )
 
+
+%HALF { #01 SFT }
+%QUARTER { #02 SFT }
+%EIGHTH { #03 SFT }
+%SIXTEENTH { #04 SFT }
+%THIRTIETH { #05 SFT }
 %MOD  { DUP2 DIV MUL SUB }
 %MOD2 { OVR2 OVR2 DIV2 MUL2 SUB2 }
+%4MOD { #04 AND } ( byte -- byte&4 )
 %8MOD { #07 AND } ( byte -- byte%8 )
 %16MOD { #10 AND } ( byte -- byte%16 )
 
@@ -34,19 +42,29 @@
 
 ( zero page )
 |0000
+@pointer [ &x $2 &y $2 ]
 @framecount $1
 @sprite [ &pos-x $2 &pos-y $2 ]
 @player1 [ &x $2 &y $2 &char $1 ]
 @player2 [ &x $2 &y $2 ]
 
-
 ( main program )
 |0100
 @setup ( -> )
+
+	( vectors )
+	( ;on-console .Console/vector DEO2 )
+
 	( set system colors )
-       	#1d49 .System/r DEO2
+ 	#1d49 .System/r DEO2
  	#1439 .System/g DEO2
 	#17bc .System/b DEO2
+
+	.Screen/width DEI2 #02 SFT2 NIP #07 SUB
+	.Screen/height DEI2 #03 SFT2 NIP #04 SUB
+
+	( mouse )
+	;on-mouse .Mouse/vector DEO2
 
 	;on-frame .Screen/vector DEO2
 
@@ -58,19 +76,21 @@
 
 	#01 .player1/char STZ
 
+	
+BRK
 
-
+@on-console ( -> )
 BRK
 
 @on-frame ( -> )
 	.framecount LDZ INC .framecount STZ
 
-	.player1/char LDZ .player1/x LDZ2 .player1/y LDZ2 
+	.player1/x LDZ2 .player1/y LDZ2 
 	CLEAR-COLOR ;draw-players JSR2
 
 	;update-players JSR2
 
-	.player1/char LDZ .player1/x LDZ2 .player1/y LDZ2
+	.player1/x LDZ2 .player1/y LDZ2
 	PLAYER1-COLOR ;draw-players JSR2
 
 BRK
@@ -79,7 +99,7 @@ BRK
 	&player-one
 		.Controller/button DEI
 		DUP #01 AND
-		,&player-one-a JCN
+		,&player-one-char JCN
 		DUP #10 AND
 		,&player-one-up JCN
 		DUP #20 AND
@@ -88,14 +108,11 @@ BRK
 		,&player-one-left JCN
 		DUP #80 AND
 		,&player-one-right JCN
-		
+
 	,&player-two JMP
 
-	&player-one-a
-		( debug )
-		.player1/char DEI .Console/write DEO
-
-		.player1/char LDZ INC .player1/char STZ
+	&player-one-char
+		.framecount LDZ THIRTIETH 8MOD #01 MUL TO-SHORT ADD .player1/char STZ
 		,&player-two JMP
 	&player-one-up
 		.player1/y LDZ2 PLAYER1-SPEED SUB2 .player1/y STZ2
@@ -108,52 +125,96 @@ BRK
 		,&player-two JMP
 	&player-one-right
 		.player1/x LDZ2 PLAYER1-SPEED ADD2 .player1/x STZ2
+		,&player-two JMP
+
 	&player-two
 		POP
 RTN
 
-@draw-players ( char x^ y^ color -- )
+@draw-players ( x^ y^ color -- )
 	( save color ) 
 	STH
 	( set initial y and x )
 	.Screen/y DEO2
 	.Screen/x DEO2
-	.player1/char DEO
+	
+	.player1/char LDZ #01 EQU
+	,&display-char1 JCN
+	.player1/char LDZ #02 EQU
+	,&display-char2 JCN
+	.player1/char LDZ #03 EQU
+	,&display-char3 JCN
+	.player1/char LDZ #04 EQU
+	,&display-char4 JCN
 
-	.framecount LDZ 16MOD #01 MUL TO-SHORT
-	( set sprite address )
-	;char4 ADD2 .Screen/addr DEO2
+	.player1/char LDZ #01 .player1/char STZ
+	,&draw JMP
 
-	( get color from return stack and draw )
-	STHr .Screen/sprite
-	( draw )
-	DEO
+	&display-char1
+		.framecount LDZ 16MOD #01 MUL TO-SHORT
+		;char1 ADD2 .Screen/addr DEO2
+		,&draw JMP
+	&display-char2
+		.framecount LDZ 16MOD #01 MUL TO-SHORT
+		;char2 ADD2 .Screen/addr DEO2
+		,&draw JMP
+	&display-char3
+		.framecount LDZ 16MOD #01 MUL TO-SHORT
+		;char3 ADD2 .Screen/addr DEO2
+		,&draw JMP
+	&display-char4
+		.framecount LDZ 16MOD #01 MUL TO-SHORT
+		;char4 ADD2 .Screen/addr DEO2
+	&draw
+		STHr .Screen/sprite
+		DEO
 RTN
 	
 @draw-background ( -- )
-        ;bg3 .Screen/addr DEO2 ( set tile address )
+	;bg4 .Screen/addr DEO2 ( set tile address )
+  ( .Screen/height DEI2 HALF2 #0004 SUB2 .Screen/y DEO2 )
 
-        ( .Screen/height DEI2 HALF2 #0004 SUB2 .Screen/y DEO2 )
-
-        .Screen/height DEI2 WALL-MARGIN SUB2
-        WALL-MARGIN
-        &loop-y
-                DUP2 .Screen/y DEO2
-                .Screen/width DEI2 #0000
+  .Screen/height DEI2 WALL-MARGIN SUB2
+  WALL-MARGIN
+  &loop-y
+		DUP2 .Screen/y DEO2
+		.Screen/width DEI2 #0000
 		&loop-x
-                        DUP2 .Screen/x DEO2
-                        #81 .Screen/sprite DEO
-                        #0008 ADD2
-                        GTH2k
-                        ,&loop-x JCN
-                POP2 POP2
+			DUP2 .Screen/x DEO2 
+		
+			#81 .Screen/sprite DEO
+			#0008 ADD2
+			GTH2k
+			,&loop-x JCN
+	POP2 POP2
 
-                #0008 ADD2
-                GTH2k
-                ,&loop-y JCN
-        POP2 POP2
+	#0008 ADD2
+	GTH2k
+  ,&loop-y JCN
+  POP2 POP2
 RTN
 
+
+@on-mouse ( --> )
+	( send pointer position to screen )
+	.pointer/x LDZ2 .Screen/x DEO2
+	.pointer/y LDZ2 .Screen/y DEO2
+
+	( clear sprite from foreground )
+	#40 .Screen/sprite DEO
+
+	( update pointer position )
+	.Mouse/x DEI2 .pointer/x STZ2
+	.Mouse/y DEI2 .pointer/y STZ2
+
+	( send pointer position to screen )
+	.pointer/x LDZ2 .Screen/x DEO2
+	.pointer/y LDZ2 .Screen/y DEO2
+
+	;pointer_icn .Screen/addr DEO2
+	( draw sprite with color 2 in foreground )
+	#41 .Screen/sprite DEO
+RTN
 
 @square ff81 8181 8181 81ff
 @rock 3c4e 9ffd f962 3c00
@@ -166,7 +227,7 @@ RTN
 @bg1 ffff f7fd affd dfff  0000 0802 5002 2000
 @bg2 ffbb efff fddf f7ff  0044 1000 0220 0800
 @bg3 0000 0000 0000 0000 0400 0020 0400 0040
-
+@bg4 0000 0000 0000 0000 0000 0400 0020 0000
 
 @paddle-sprite
   &tile0 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
@@ -196,3 +257,5 @@ RTN
 @mob1
   &frame0 007e 7e98 9b27 3d20  007e 1866 2424 3c20
   &frame1 007e 7e19 dbe6 bc04  007e 1866 2424 3c04
+
+@pointer_icn [ 80c0 e0f0 f8e0 1000 ]
