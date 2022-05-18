@@ -44,7 +44,6 @@
 |0000
 @pointer [ &x $2 &y $2 ]
 @framecount $1
-@sprite [ &pos-x $2 &pos-y $2 ]
 @player1 [ &x $2 &y $2 &char $1 ]
 @player2 [ &x $2 &y $2 ]
 @colors [ &hud $1 ]
@@ -128,19 +127,40 @@ BRK
 @on-frame ( -> )
 	.framecount LDZ INC .framecount STZ
 
-	.player1/x LDZ2 .player1/y LDZ2 
-	CLEAR-COLOR ;draw-players JSR2
+	&players
+		.player1/x LDZ2 .player1/y LDZ2 
+		CLEAR-COLOR ;draw-players JSR2
 
-	;update-players JSR2
+		;update-players JSR2
 
-	.player1/x LDZ2 .player1/y LDZ2
-	PLAYER1-COLOR ;draw-players JSR2
+		.player1/x LDZ2 .player1/y LDZ2
+		PLAYER1-COLOR ;draw-players JSR2
+
+	&mobs
+		#0048 #0016 #80 ;draw-mobs JSR2
+		#0048 #0016 #85 ;draw-mobs JSR2
+
 
 	( update label )
 	.Screen/width DEI2 #002e SUB2 #0004 #0064 ;draw-dec JSR2
 	.Screen/width DEI2 #002e SUB2 #0010 #0014 ;draw-dec JSR2
 
 BRK
+
+@draw-mobs ( x^ y^ color -- )
+	STH
+	.Screen/y DEO2
+	.Screen/x DEO2
+
+	.framecount LDZ EIGHTH #04 AND #20 MUL TO-SHORT
+	;mob2 ADD2 .Screen/addr DEO2
+	
+	#16 .Screen/auto DEO
+
+	STHr
+	.Screen/sprite DEOk DEO
+
+RTN
 
 @update-players ( -- )
 	&player-one
@@ -366,5 +386,35 @@ JMP2r
 @mob1
   &frame0 007e 7e98 9b27 3d20  007e 1866 2424 3c20
   &frame1 007e 7e19 dbe6 bc04  007e 1866 2424 3c04
+
+@mob2
+	&frame0 [ 0003 0408 1010 2020  0000 0000 0000 0300
+					  02f0 0804 0402 0202  0000 0050 1000 0010
+						2030 101c 0700 0000  1000 0c03 0000 0000
+						0206 0c18 e000 0000	 0408 10e0 0000 0000 ]
+
+	&frame1 [ 0007 0810 2020 4040  0000 0000 0000 0600 
+						02e0 1008 0404 0404  0000 00c0 2000 0020 
+						4060 2038 0f00 0000  2000 1807 0000 0000 
+						040c 1830 c000 0000  0000 20c0 0000 0000 ] 
+
+	&frame2 [ 0003 0404 0808 1010  0000 0000 0000 0304 
+						04f8 0c02 0201 0101  0000 0060 0000 0008 
+						1010 0804 0300 0000  0008 0403 0000 0000 
+						0206 0c18 e000 0000  0408 10e0 0000 0000 ] 
+
+	&frame3 [ 0007 0810 2020 4040  0000 0000 0000 0600 
+						02e0 1008 0404 0404  0000 00c0 2000 0020 
+						4060 2038 0f00 0000  2000 1807 0000 0000 
+						040c 1830 c000 0000  0000 20c0 0000 0000 ] 
+
+
+@sprite
+	&length $2
+	&array
+		&x 0600
+		&y 0500
+		&xvel 0060
+		&yvel 0010
 
 @pointer_icn [ 80c0 e0f0 f8e0 1000 ]
