@@ -228,10 +228,11 @@ RTN
 		&loop-x
 			DUP2 .Screen/x DEO2
 			
-			#00 [ ;rand JSR2 #1f AND ] 
+			#00 [ ;rand JSR2 ] 8MOD
 			;bg1 ADD2 .Screen/addr DEO2 ( set tile address )
-		
+			
 			#02 .Screen/sprite DEO
+			
 			#0008 ADD2
 			GTH2k
 			,&loop-x JCN
@@ -332,10 +333,10 @@ JMP2r
 @alpha1	1838 0808 0808 3c00
 
 @tile-background 1122 4488 1122 4488
-@bg1 ffff f7fd affd dfff  0000 0802 5002 2000
-@bg2 ffbb efff fddf f7ff  0044 1000 0220 0800
-@bg3 0000 0000 0000 0000 0400 0020 0400 0040
-@bg4 0000 0000 0000 0000 0000 0400 0020 0000
+@bg1 0000 0000 0000 0000  0000 0802 5002 2000
+@bg2 0000 0000 0000 0000  0044 1000 0220 0800
+@bg3 0000 0000 0000 0000	0400 0020 0400 0040
+@bg4 0000 0000 0000 0000	0000 0400 0020 0000
 
 @paddle-sprite
   &tile0 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
