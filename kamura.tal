@@ -37,8 +37,8 @@
 %PLAYER1-SPEED { #0001 }
 
 %MARGIN { #0020 }
-%WALL-MARGIN { #0020 }
-
+%WALL-MARGIN { #0008 }
+%HUD-MARGIN { #0020 }
 
 ( zero page )
 |0000
@@ -63,6 +63,9 @@
 
 	.Screen/width DEI2 #02 SFT2 NIP #07 SUB
 	.Screen/height DEI2 #03 SFT2 NIP #04 SUB
+	.Screen/width DEI2 #0002 DIV2 .Screen/width DEO2
+	.Screen/height DEI2 #0002 DIV2 .Screen/height DEO2
+
 	
 	#43 .colors/hud STZ
 
@@ -71,8 +74,8 @@
 
 	;on-frame .Screen/vector DEO2
 
-	.Screen/width DEI2 #0046 SUB2 #0008 ;text/hpinfo #01 ;draw-str JSR2
-	.Screen/width DEI2 #0046 SUB2 #0016 ;text/mpinfo #02 ;draw-str JSR2
+	.Screen/width DEI2 #0048 SUB2 #0004 ;text/hpinfo #01 ;draw-str JSR2
+	.Screen/width DEI2 #0048 SUB2 #0010 ;text/mpinfo #02 ;draw-str JSR2
 
 	#04 ;rand/a STA
 
@@ -134,8 +137,8 @@ BRK
 	PLAYER1-COLOR ;draw-players JSR2
 
 	( update label )
-	.Screen/width DEI2 #0030 SUB2 #0008 #0064 ;draw-dec JSR2
-	.Screen/width DEI2 #0030 SUB2 #0016 #0014 ;draw-dec JSR2
+	.Screen/width DEI2 #002e SUB2 #0004 #0064 ;draw-dec JSR2
+	.Screen/width DEI2 #002e SUB2 #0010 #0014 ;draw-dec JSR2
 
 BRK
 
@@ -215,18 +218,20 @@ RTN
 RTN
 	
 @draw-background ( -- )
-	;bg4 .Screen/addr DEO2 ( set tile address )
   ( .Screen/height DEI2 HALF2 #0004 SUB2 .Screen/y DEO2 )
 
   .Screen/height DEI2 WALL-MARGIN SUB2
-  WALL-MARGIN
+  HUD-MARGIN
   &loop-y
 		DUP2 .Screen/y DEO2
-		.Screen/width DEI2 #0000
+		.Screen/width DEI2 WALL-MARGIN SUB2 WALL-MARGIN
 		&loop-x
-			DUP2 .Screen/x DEO2 
+			DUP2 .Screen/x DEO2
+			
+			#00 [ ;rand JSR2 #1f AND ] 
+			;bg1 ADD2 .Screen/addr DEO2 ( set tile address )
 		
-			#81 .Screen/sprite DEO
+			#02 .Screen/sprite DEO
 			#0008 ADD2
 			GTH2k
 			,&loop-x JCN
