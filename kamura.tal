@@ -47,6 +47,7 @@
 @sprite [ &pos-x $2 &pos-y $2 ]
 @player1 [ &x $2 &y $2 &char $1 ]
 @player2 [ &x $2 &y $2 ]
+@colors [ &hud $1 ]
 
 ( main program )
 |0100
@@ -62,6 +63,8 @@
 
 	.Screen/width DEI2 #02 SFT2 NIP #07 SUB
 	.Screen/height DEI2 #03 SFT2 NIP #04 SUB
+	
+	#43 .colors/hud STZ
 
 	( mouse )
 	;on-mouse .Mouse/vector DEO2
@@ -85,7 +88,6 @@
 BRK
 
 @draw-str ( x* y* text* color -- )
-
 	#01 .Screen/auto DEO
 	STH
 	SWP2 .Screen/y DEO2
@@ -100,6 +102,23 @@ BRK
 
 JMP2r
 
+@draw-dec ( x* y* num* color -- )
+	#01 .Screen/auto DEO
+	SWP2 .Screen/y DEO2
+	SWP2 .Screen/x DEO2
+	#2710 DIV2k DUP2 NIP ,&digit JSR MUL2 SUB2
+	#03e8 DIV2k DUP2 NIP ,&digit JSR MUL2 SUB2
+	#0064 DIV2k DUP2 NIP ,&digit JSR MUL2 SUB2 NIP
+	#0a DIVk DUP ,&digit JSR MUL SUB
+	,&digit JSR
+
+	#00 .Screen/auto DEO
+
+JMP2r
+	&digit ( num -- )
+		#30 SFT #00 SWP ;font/num ADD2 .Screen/addr DEO2
+		.colors/hud LDZ .Screen/sprite DEO
+	JMP2r
 @on-console ( -> )
 BRK
 
@@ -113,6 +132,10 @@ BRK
 
 	.player1/x LDZ2 .player1/y LDZ2
 	PLAYER1-COLOR ;draw-players JSR2
+
+	( update label )
+	.Screen/width DEI2 #0030 SUB2 #0008 #0064 ;draw-dec JSR2
+	.Screen/width DEI2 #0030 SUB2 #0016 #0014 ;draw-dec JSR2
 
 BRK
 
@@ -313,7 +336,7 @@ JMP2r
   &tile0 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile1 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile2 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
-  &tile3  3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
+  &tile3 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile4 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
   &tile5 [ 3f 7f e7c3 c3c3 c3c3  0000 173c 3c3c 3c3c ]
 
