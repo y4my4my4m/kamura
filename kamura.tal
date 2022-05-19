@@ -33,7 +33,7 @@
 %RTN { JMP2r }
 
 ( constants )
-%PLAYER1-COLOR { #c5 }
+%PLAYER1-COLOR { #c3 }
 %PLAYER1-SPEED { #0001 }
 
 %MARGIN { #0020 }
@@ -46,6 +46,10 @@
 @framecount $1
 @player1 [ &x $2 &y $2 &char $1 ]
 @player2 [ &x $2 &y $2 ]
+@mob-one [ &x $2 &y $2 ]
+@mob-two [ &x $2 &y $2 ]
+@mob-three [ &x $2 &y $2 ]
+@mob-four [ &x $2 &y $2 ]
 @colors [ &hud $1 ]
 
 ( main program )
@@ -56,9 +60,13 @@
 	( ;on-console .Console/vector DEO2 )
 
 	( set system colors )
- 	#1d49 .System/r DEO2
- 	#1439 .System/g DEO2
-	#17bc .System/b DEO2
+  (	#1d49 .System/r DEO2 )
+ 	( #1439 .System/g DEO2 )
+	( #17bc .System/b DEO2 )
+
+	#1f44 .System/r DEO2
+ 	#1462 .System/g DEO2
+	#139b .System/b DEO2
 
 	.Screen/width DEI2 #02 SFT2 NIP #07 SUB
 	.Screen/height DEI2 #03 SFT2 NIP #04 SUB
@@ -66,7 +74,7 @@
 	.Screen/height DEI2 #0002 DIV2 .Screen/height DEO2
 
 	
-	#43 .colors/hud STZ
+	#02 .colors/hud STZ
 
 	( mouse )
 	;on-mouse .Mouse/vector DEO2
@@ -74,17 +82,28 @@
 	;on-frame .Screen/vector DEO2
 
 	.Screen/width DEI2 #0048 SUB2 #0004 ;text/hpinfo #01 ;draw-str JSR2
-	.Screen/width DEI2 #0048 SUB2 #0010 ;text/mpinfo #02 ;draw-str JSR2
+	.Screen/width DEI2 #0048 SUB2 #0010 ;text/mpinfo #03 ;draw-str JSR2
 
 	#04 ;rand/a STA
 
 	;draw-background JSR2
 
-	( initialize players )
+	( initialize players & mobs )
 	MARGIN .player1/x STZ2
 	MARGIN .player1/y STZ2
 
-	#01 .player1/char STZ
+
+
+	#004f .mob-four/x STZ2
+	#0078 .mob-four/y STZ2
+	#009f .mob-three/x STZ2
+	#007f .mob-three/y STZ2
+	#0010 .mob-two/x STZ2
+	#0032 .mob-two/y STZ2
+	#0064 .mob-one/x STZ2
+	#0036 .mob-one/y STZ2
+
+	#00 .player1/char STZ
 
 	
 BRK
@@ -137,11 +156,12 @@ BRK
 		PLAYER1-COLOR ;draw-players JSR2
 
 	&mobs
-		#0048 #0016 #80 ;draw-mobs JSR2
-		#0048 #0016 #85 ;draw-mobs JSR2
+		.mob-one/x LDZ2 #0002 MUL2 .mob-one/y LDZ2 #81 ;draw-mobs JSR2 
+		.mob-two/x LDZ2 .mob-two/y LDZ2 #82 ;draw-mobs JSR2
+		.mob-three/x LDZ2 .mob-three/y LDZ2 #83 ;draw-mobs JSR2
+		.mob-four/x LDZ2  .mob-four/y LDZ2 #82  ;draw-mobs JSR2
 
-
-	( update label )
+( update label )
 	.Screen/width DEI2 #002e SUB2 #0004 #0064 ;draw-dec JSR2
 	.Screen/width DEI2 #002e SUB2 #0010 #0014 ;draw-dec JSR2
 
@@ -165,8 +185,6 @@ RTN
 @update-players ( -- )
 	&player-one
 		.Controller/button DEI
-		DUP #01 AND
-		,&player-one-char JCN
 		DUP #10 AND
 		,&player-one-up JCN
 		DUP #20 AND
@@ -178,19 +196,20 @@ RTN
 
 	,&player-two JMP
 
-	&player-one-char
-		.framecount LDZ THIRTIETH 8MOD #01 MUL TO-SHORT ADD .player1/char STZ
-		,&player-two JMP
-	&player-one-up
-		.player1/y LDZ2 PLAYER1-SPEED SUB2 .player1/y STZ2
-		,&player-two JMP
 	&player-one-down
+		#00 .player1/char STZ
 		.player1/y LDZ2 PLAYER1-SPEED ADD2 .player1/y STZ2
 		,&player-two JMP
+	&player-one-up
+		#01 .player1/char STZ
+		.player1/y LDZ2 PLAYER1-SPEED SUB2 .player1/y STZ2
+		,&player-two JMP
 	&player-one-left
+		#02 .player1/char STZ
 		.player1/x LDZ2 PLAYER1-SPEED SUB2 .player1/x STZ2
 		,&player-two JMP
 	&player-one-right
+		#03 .player1/char STZ
 		.player1/x LDZ2 PLAYER1-SPEED ADD2 .player1/x STZ2
 		,&player-two JMP
 
@@ -205,36 +224,35 @@ RTN
 	.Screen/y DEO2
 	.Screen/x DEO2
 	
-	.player1/char LDZ #01 EQU
-	,&display-char1 JCN
-	.player1/char LDZ #02 EQU
-	,&display-char2 JCN
-	.player1/char LDZ #03 EQU
-	,&display-char3 JCN
-	.player1/char LDZ #04 EQU
-	,&display-char4 JCN
+	#01 .player1/char LDZ EQU
+	,&char-up JCN
+	#02 .player1/char LDZ EQU
+	,&char-left JCN
+	#03 .player1/char LDZ EQU
+	,&char-right JCN
+	
+	,&char-down JMP
 
-	.player1/char LDZ #01 .player1/char STZ
-	,&draw JMP
-
-	&display-char1
+	&char-down
 		.framecount LDZ 16MOD #01 MUL TO-SHORT
-		;char1 ADD2 .Screen/addr DEO2
+		;char-down ADD2 .Screen/addr DEO2
 		,&draw JMP
-	&display-char2
+	&char-up
 		.framecount LDZ 16MOD #01 MUL TO-SHORT
-		;char2 ADD2 .Screen/addr DEO2
+		;char-up ADD2 .Screen/addr DEO2
 		,&draw JMP
-	&display-char3
+	&char-left
 		.framecount LDZ 16MOD #01 MUL TO-SHORT
-		;char3 ADD2 .Screen/addr DEO2
+		;char-left ADD2 .Screen/addr DEO2
 		,&draw JMP
-	&display-char4
+	&char-right
 		.framecount LDZ 16MOD #01 MUL TO-SHORT
-		;char4 ADD2 .Screen/addr DEO2
+		;char-left ADD2 .Screen/addr DEO2
+		STHr POP #d3 STH
 	&draw
-		STHr .Screen/sprite
-		DEO
+	STHr
+	.Screen/sprite
+	DEO
 RTN
 	
 @draw-background ( -- )
@@ -382,6 +400,16 @@ JMP2r
 @char4
   &frame0 0036 083e 1c14 1414  0036 3e3e 0000 0000
   &frame1 0000 3608 3e1c 1414  0000 3e3e 3e00 0000
+
+@char-down
+	&frame0 0024 7e7e 7e7e 0000  0024 7e5a 5a7e 3c24
+	&frame1 0000 247e 7e7e 7e00  0000 247e 5a5a 7e24
+@char-left
+	&frame0 0010 3c3c 3c3c 0000  0010 3c1c 1c3c 3c18
+	&frame1 0000 103c 3c3c 3c00  0000 103c 1c1c 3c18 
+@char-up
+	&frame0 0024 7e7e 7e7e 0000  0024 7e7e 7e7e 3c24 
+	&frame1 0000 247e 7e7e 7e00  0000 247e 7e7e 7e24
 
 @mob1
   &frame0 007e 7e98 9b27 3d20  007e 1866 2424 3c20
